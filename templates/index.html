@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Heart Disease Predictor</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    background: #0d1117;
+    color: #e0e0e0;
+    min-height: 100vh;
+    padding: 30px 16px;
+  }
+
+  .container { max-width: 780px; margin: 0 auto; }
+
+  header {
+    text-align: center;
+    margin-bottom: 36px;
+  }
+  header .badge {
+    display: inline-block;
+    background: #e8439322;
+    border: 1px solid #e84393aa;
+    color: #e84393;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 5px 14px;
+    border-radius: 20px;
+    margin-bottom: 14px;
+  }
+  header h1 {
+    font-size: 32px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 8px;
+  }
+  header p {
+    font-size: 15px;
+    color: #888;
+  }
+
+  .card {
+    background: #161b22;
+    border: 1px solid #21262d;
+    border-radius: 14px;
+    padding: 28px;
+    margin-bottom: 24px;
+  }
+
+  .card h2 {
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #e84393;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #21262d;
+  }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media(max-width: 560px) { .grid { grid-template-columns: 1fr; } }
+
+  .field label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: #8b949e;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .field input, .field select {
+    width: 100%;
+    padding: 10px 14px;
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    color: #e0e0e0;
+    font-size: 14px;
+    transition: border-color 0.2s;
+    outline: none;
+  }
+  .field input:focus, .field select:focus {
+    border-color: #e84393;
+    box-shadow: 0 0 0 3px #e8439318;
+  }
+  .field select option { background: #161b22; }
+
+  .hint {
+    font-size: 11px;
+    color: #555;
+    margin-top: 4px;
+  }
+
+  .btn {
+    width: 100%;
+    padding: 15px;
+    background: linear-gradient(135deg, #e84393, #a020a0);
+    border: none;
+    border-radius: 10px;
+    color: white;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+    transition: opacity 0.2s, transform 0.1s;
+    margin-top: 8px;
+  }
+  .btn:hover { opacity: 0.9; }
+  .btn:active { transform: scale(0.99); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  #result-box { display: none; }
+
+  .result-positive {
+    background: #ff000015;
+    border: 1px solid #ff000055;
+    border-radius: 12px;
+    padding: 24px;
+    text-align: center;
+  }
+  .result-negative {
+    background: #00ff7715;
+    border: 1px solid #00ff7755;
+    border-radius: 12px;
+    padding: 24px;
+    text-align: center;
+  }
+  .result-icon { font-size: 48px; margin-bottom: 10px; }
+  .result-title { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+  .result-positive .result-title { color: #ff6b6b; }
+  .result-negative .result-title { color: #36d399; }
+
+  .result-subtitle { font-size: 14px; color: #888; margin-bottom: 20px; }
+
+  .stats-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .stat {
+    background: #0d111788;
+    border: 1px solid #21262d;
+    border-radius: 8px;
+    padding: 12px;
+    text-align: center;
+  }
+  .stat-label { font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.8px; }
+  .stat-value { font-size: 22px; font-weight: 700; margin-top: 4px; }
+
+  .prob-bar-wrap {
+    background: #0d1117;
+    border-radius: 8px;
+    height: 10px;
+    margin: 12px 0 4px;
+    overflow: hidden;
+  }
+  .prob-bar {
+    height: 100%;
+    border-radius: 8px;
+    transition: width 0.8s ease;
+  }
+
+  .disclaimer {
+    font-size: 12px;
+    color: #555;
+    text-align: center;
+    margin-top: 16px;
+    line-height: 1.6;
+  }
+
+  .loading { display: none; text-align: center; padding: 16px; color: #888; font-size: 14px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="badge">AI Powered</div>
+    <h1>Heart Disease Predictor</h1>
+    <p>Enter patient clinical data below to assess heart disease risk</p>
+  </header>
+
+  <div class="card">
+    <h2>Patient Information</h2>
+    <div class="grid">
+      <div class="field">
+        <label>Age</label>
+        <input type="number" id="age" placeholder="e.g. 52" min="1" max="120">
+      </div>
+      <div class="field">
+        <label>Sex</label>
+        <select id="sex">
+          <option value="">Select...</option>
+          <option value="1">Male</option>
+          <option value="0">Female</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Clinical Measurements</h2>
+    <div class="grid">
+      <div class="field">
+        <label>Chest Pain Type (cp)</label>
+        <select id="cp">
+          <option value="">Select...</option>
+          <option value="0">0 – Typical Angina</option>
+          <option value="1">1 – Atypical Angina</option>
+          <option value="2">2 – Non-Anginal Pain</option>
+          <option value="3">3 – Asymptomatic</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Resting Blood Pressure</label>
+        <input type="number" id="trestbps" placeholder="e.g. 130">
+        <div class="hint">mm Hg</div>
+      </div>
+      <div class="field">
+        <label>Cholesterol</label>
+        <input type="number" id="chol" placeholder="e.g. 250">
+        <div class="hint">mg/dl</div>
+      </div>
+      <div class="field">
+        <label>Fasting Blood Sugar &gt; 120</label>
+        <select id="fbs">
+          <option value="">Select...</option>
+          <option value="1">Yes</option>
+          <option value="0">No</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Resting ECG (restecg)</label>
+        <select id="restecg">
+          <option value="">Select...</option>
+          <option value="0">0 – Normal</option>
+          <option value="1">1 – ST-T Abnormality</option>
+          <option value="2">2 – LV Hypertrophy</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Max Heart Rate (thalach)</label>
+        <input type="number" id="thalach" placeholder="e.g. 150">
+        <div class="hint">bpm</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Exercise Test Results</h2>
+    <div class="grid">
+      <div class="field">
+        <label>Exercise Induced Angina</label>
+        <select id="exang">
+          <option value="">Select...</option>
+          <option value="1">Yes</option>
+          <option value="0">No</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>ST Depression (oldpeak)</label>
+        <input type="number" id="oldpeak" placeholder="e.g. 1.5" step="0.1">
+      </div>
+      <div class="field">
+        <label>Slope of ST Segment</label>
+        <select id="slope">
+          <option value="">Select...</option>
+          <option value="0">0 – Upsloping</option>
+          <option value="1">1 – Flat</option>
+          <option value="2">2 – Downsloping</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Major Vessels (ca)</label>
+        <select id="ca">
+          <option value="">Select...</option>
+          <option value="0">0</option>
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Thalassemia (thal)</label>
+        <select id="thal">
+          <option value="">Select...</option>
+          <option value="0">0 – Normal</option>
+          <option value="1">1 – Fixed Defect</option>
+          <option value="2">2 – Reversible Defect</option>
+          <option value="3">3 – Unknown</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn" onclick="predict()">Analyze Patient Data</button>
+
+  <div class="loading" id="loading">Analyzing... Please wait</div>
+
+  <div id="result-box" style="margin-top:24px;"></div>
+
+  <p class="disclaimer">⚠️ This tool is for educational purposes only. Always consult a qualified medical professional for diagnosis.</p>
+
+</div>
+
+<script>
+async function predict() {
+  const fields = ['age','sex','cp','trestbps','chol','fbs','restecg',
+                  'thalach','exang','oldpeak','slope','ca','thal'];
+  const data = {};
+  for (const f of fields) {
+    const val = document.getElementById(f).value;
+    if (val === '' || val === null) {
+      alert(`Please fill in: ${f.toUpperCase()}`);
+      return;
+    }
+    data[f] = val;
+  }
+
+  const btn = document.querySelector('.btn');
+  btn.disabled = true;
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('result-box').style.display = 'none';
+
+  try {
+    const res = await fetch('/predict', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    const result = await res.json();
+
+    const box = document.getElementById('result-box');
+    const isPositive = result.prediction === 1;
+    const riskColor = { High: '#ff6b6b', Medium: '#ffd93d', Low: '#36d399' }[result.risk_level];
+    const barColor  = isPositive ? '#ff6b6b' : '#36d399';
+
+    box.innerHTML = `
+      <div class="${isPositive ? 'result-positive' : 'result-negative'}">
+        <div class="result-icon">${isPositive ? '⚠️' : '✅'}</div>
+        <div class="result-title">${result.result}</div>
+        <div class="result-subtitle">Based on Logistic Regression model (Accuracy: 80.33%)</div>
+        <div class="prob-bar-wrap">
+          <div class="prob-bar" style="width:${result.probability}%; background:${barColor};"></div>
+        </div>
+        <div style="font-size:12px; color:#666; margin-bottom:16px;">Disease probability: ${result.probability}%</div>
+        <div class="stats-row">
+          <div class="stat">
+            <div class="stat-label">Probability</div>
+            <div class="stat-value" style="color:${barColor}">${result.probability}%</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Risk Level</div>
+            <div class="stat-value" style="color:${riskColor}">${result.risk_level}</div>
+          </div>
+        </div>
+      </div>`;
+    box.style.display = 'block';
+  } catch (e) {
+    alert('Error connecting to API. Make sure Flask is running.');
+  } finally {
+    btn.disabled = false;
+    document.getElementById('loading').style.display = 'none';
+  }
+}
+</script>
+</body>
+</html>
